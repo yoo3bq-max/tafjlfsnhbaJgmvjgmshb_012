@@ -61,30 +61,29 @@ onSnapshot(msgCol, (snapshot) => {
     document.getElementById('visitor-count').innerText = `ACTIVE_NODES: ${snapshot.size + 1069}`;
     
     snapshot.docChanges().forEach(change => {
-        if (change.type === "added") {
-            const data = change.doc.data();
-            const text = data.text || "";
+ if (change.type === "added") {
+        const data = change.doc.data();
+        const text = data.text || "";
 
-            // ★絵文字の判定ロジックを追加
-            const hasSakana = text.includes('サカナクション');
-            const hasOOR = text.includes('ワンオク') || text.includes('ONE OK ROCK') || text.includes('1069');
+        // 文字列判定（ここが絵文字のスイッチです）
+        const hasSakana = text.includes('サカナクション');
+        const hasOOR = text.includes('ワンオク') || text.includes('ONE OK ROCK') || text.includes('1069');
 
-            messages.push({
-                id: change.doc.id,
-                text: text,
-                userId: data.userId,
-                currentX: 20 + Math.random() * 60,
-                currentY: 105,
-                floatVelocity: hasOOR ? -0.1 : (-0.012 - Math.random() * 0.006),
-                phase: Math.random() * Math.PI * 2,
-                orbitPhase: Math.random() * Math.PI * 2,
-                opacity: 0,
-                hasSakana,
-                hasOOR,
-                element: null
-            });
-        }
-    });
+        messages.push({
+            id: change.doc.id,
+            text: text,
+            userId: data.userId,
+            currentX: 20 + Math.random() * 60,
+            currentY: 105,
+            floatVelocity: hasOOR ? -0.1 : (-0.012 - Math.random() * 0.006), // OORは速く上昇
+            phase: Math.random() * Math.PI * 2,
+            orbitPhase: Math.random() * Math.PI * 2,
+            opacity: 0,
+            hasSakana: hasSakana, // ここでフラグを保存
+            hasOOR: hasOOR,       // ここでフラグを保存
+            element: null
+        });
+    }
 });
 
 // --- アニメーションループ ---
