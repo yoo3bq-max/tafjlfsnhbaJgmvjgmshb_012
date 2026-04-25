@@ -153,23 +153,33 @@ function animate() {
 
 requestAnimationFrame(animate);
 
-// --- メッセージ送信 ---
-document.getElementById('input-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const input = document.getElementById('message-input');
-    const text = input.value.trim();
+// --- メッセージ送信 (最新修正版) ---
+const inputForm = document.getElementById('input-form');
+const inputField = document.getElementById('message-input');
 
-    // 送信ボタンが押されたとき、またはEnterが押されたときに中身を空にする
+inputForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const text = inputField.value.trim();
+
+    // ユーザーがログインしていて、テキストが空でない場合のみ送信
     if (!text || !user) return;
 
     try {
+        // 先に入力欄を空にする（ユーザー体験を良くするため）
+        const messageToSend = text;
+        inputField.value = ''; 
+
         await addDoc(msgCol, {
-            text: text,
+            text: messageToSend,
             userId: user.uid,
             createdAt: serverTimestamp()
         });
-        input.value = ''; // ★ここで入力欄をリセットします
+        
+        console.log("Message sent!");
     } catch (err) {
         console.error("Submit Error:", err);
+        // エラーが起きたら入力欄に文字を戻す（親切設計）
+        inputField.value = text;
     }
-};
+});
