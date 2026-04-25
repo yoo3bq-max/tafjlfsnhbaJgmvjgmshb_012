@@ -12,4 +12,19 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    .deco-emoji {
+    position: absolute;
+    z-index: 100;
+    font-size: 24px;
+    pointer-events: none;
+    filter: drop-shadow(0 0 8px cyan);
+}
+
+.message-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 }
