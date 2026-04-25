@@ -1,13 +1,15 @@
-/* OORメッセージを少し目立たせる */
-.special-oor {
-    border-color: rgba(255, 255, 255, 0.5) !important;
-    background: rgba(255, 255, 255, 0.15) !important;
-    font-weight: bold !important;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+.deco-emoji {
+    position: absolute;
+    z-index: 100;
+    font-size: 24px;
+    pointer-events: none;
+    filter: drop-shadow(0 0 8px cyan);
 }
 
-/* 絵文字のスタイル */
-.deco {
-    pointer-events: none;
-    transition: transform 0.1s linear;
+.message-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
