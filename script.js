@@ -2,15 +2,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- Firebase Configuration (★ここを必ずご自身のものに差し替えてください) ---
-const firebaseConfig= {
-  apiKey: "AIzaSyAkmxcg0LykyxIlBnvJQIiiPI_H8Dy_koM",
-  authDomain: "universal-8d7eb.firebaseapp.com",
-  projectId: "universal-8d7eb",
-  storageBucket: "universal-8d7eb.firebasestorage.app",
-  messagingSenderId: "242890668753",
-  appId: "1:242890668753:web:a94bf7f0eecf6f4efda3f0",
-  measurementId: "G-KHLCH9QYEZ"
+// --- Firebase Configuration (★ご自身のものに差し替え) ---
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -21,80 +20,54 @@ const appId = 'cosmic-message-app';
 let user = null;
 let messages = [];
 let time = 0;
-let audioCtx = null;
 
-// --- オーディオエンジン ---
-window.initAudio = () => {
-    if (audioCtx) return;
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AudioContext();
-    const masterGain = audioCtx.createGain();
-    masterGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    masterGain.connect(audioCtx.destination);
-    const createDrone = (freq) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        osc.connect(gain); gain.connect(masterGain);
-        osc.start();
-    };
-    createDrone(60); createDrone(90);
-};
-
-// --- Cosmic ID 生成 ---
+// Cosmic ID 生成 (ユーザーIDごとに異なる名前を出す)
 const generateCosmicId = (uid) => {
-    const prefixes = ["NOVA", "VOYAGER", "ORION", "ZODIAC", "STELLAR"];
-    const index = uid ? uid.charCodeAt(0) % prefixes.length : 0;
-    const suffix = uid ? uid.substring(0, 4).toUpperCase() : "XXXX";
+    if(!uid) return "UNKNOWN";
+    const prefixes = ["NOVA", "VOYAGER", "ORION", "ZODIAC", "STELLAR", "ECHO"];
+    const index = uid.charCodeAt(0) % prefixes.length;
+    const suffix = uid.substring(0, 4).toUpperCase();
     return `${prefixes[index]}-${suffix}`;
 };
 
-// --- Firebase 認証 ---
-signInAnonymously(auth).catch(err => console.error("Auth Error:", err));
+// Auth
+signInAnonymously(auth);
 onAuthStateChanged(auth, u => user = u);
 
-// --- Firestore リアルタイム監視 ---
+// Firestore 監視
 const msgCol = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
 onSnapshot(msgCol, (snapshot) => {
-    document.getElementById('visitor-count').innerText = `ACTIVE_NODES: ${snapshot.size + 1069}`;
-    
     snapshot.docChanges().forEach(change => {
- if (change.type === "added") {
-        const data = change.doc.data();
-        const text = data.text || "";
+        if (change.type === "added") {
+            const data = change.doc.data();
+            const text = data.text || "";
+            
+            // ★判定ロジック
+            const hasSakana = text.includes('サカナクション');
+            const hasOOR = text.includes('ワンオク') || text.includes('ONE OK ROCK') || text.includes('1069');
 
-        // 文字列判定（ここが絵文字のスイッチです）
-        const hasSakana = text.includes('サカナクション');
-        const hasOOR = text.includes('ワンオク') || text.includes('ONE OK ROCK') || text.includes('1069');
-
-        messages.push({
-            id: change.doc.id,
-            text: text,
-            userId: data.userId,
-            currentX: 20 + Math.random() * 60,
-            currentY: 105,
-            floatVelocity: hasOOR ? -0.1 : (-0.012 - Math.random() * 0.006), // OORは速く上昇
-            phase: Math.random() * Math.PI * 2,
-            orbitPhase: Math.random() * Math.PI * 2,
-            opacity: 0,
-            hasSakana: hasSakana, // ここでフラグを保存
-            hasOOR: hasOOR,       // ここでフラグを保存
-            element: null
-        });
-    }
+            messages.push({
+                id: change.doc.id,
+                text: text,
+                userId: data.userId || "anon",
+                currentX: 20 + Math.random() * 60,
+                currentY: 105,
+                floatVelocity: hasOOR ? -0.08 : (-0.015 - Math.random() * 0.01),
+                phase: Math.random() * Math.PI * 2,
+                orbitPhase: Math.random() * Math.PI * 2,
+                opacity: 0,
+                hasSakana,
+                hasOOR,
+                element: null
+            });
+        }
+    });
 });
 
-// --- アニメーションループ ---
+// アニメーション
 function animate() {
     time += 0.005;
     const container = document.getElementById('message-stream');
-    const bg = document.getElementById('bg-container');
-
-    if (bg) {
-        bg.style.transform = `scale(${1.25 + Math.sin(time * 0.02) * 0.03}) translate(${Math.cos(time * 0.04) * 15}px, ${Math.sin(time * 0.04) * 8}px)`;
-    }
 
     messages.forEach((msg) => {
         msg.currentY += msg.floatVelocity;
@@ -104,34 +77,31 @@ function animate() {
         if (msg.currentY > 10) msg.opacity = Math.min(1, msg.opacity + 0.02);
         if (msg.currentY < 5) msg.opacity = Math.max(0, msg.opacity - 0.02);
 
+        // 要素作成（ここで絵文字やIDを流し込む）
         if (!msg.element) {
             msg.element = document.createElement('div');
             msg.element.className = 'message-node';
             
-            // ★絵文字（🐡や🌎）を表示するためのHTML組み立て
-            let decoHTML = '';
-            const orbitX = Math.cos(time * 1.1 + msg.orbitPhase) * 65;
-            const orbitY = Math.sin(time * 0.7 + msg.orbitPhase) * 22;
-
-            if (msg.hasSakana) decoHTML = `<div class="deco" style="position:absolute; z-index:50; font-size:18px;">🐡</div>`;
-            if (msg.hasOOR) decoHTML = `<div class="deco" style="position:absolute; z-index:50; font-size:20px;">🌎</div>`;
+            let deco = '';
+            if (msg.hasSakana) deco = `<div class="deco-emoji">🐡</div>`;
+            if (msg.hasOOR) deco = `<div class="deco-emoji">🌎</div>`;
 
             msg.element.innerHTML = `
-                ${decoHTML}
+                ${deco}
                 <div class="meta-info">
                     <span class="cosmic-id">${generateCosmicId(msg.userId)}</span>
                 </div>
-                <div class="message-bubble ${msg.hasOOR ? 'special-oor' : ''}">${msg.text}</div>
+                <div class="message-bubble">${msg.text}</div>
             `;
             container.appendChild(msg.element);
         }
 
-        // 絵文字を回転（周回）させる動きを反映
-        const deco = msg.element.querySelector('.deco');
-        if (deco) {
-            const oX = Math.cos(time * 1.5 + msg.orbitPhase) * 50;
-            const oY = Math.sin(time * 1.0 + msg.orbitPhase) * 20;
-            deco.style.transform = `translate(${oX}px, ${oY}px)`;
+        // 絵文字を回す
+        const decoEl = msg.element.querySelector('.deco-emoji');
+        if (decoEl) {
+            const ox = Math.cos(time * 2 + msg.orbitPhase) * 60;
+            const oy = Math.sin(time * 1.5 + msg.orbitPhase) * 20;
+            decoEl.style.transform = `translate(${ox}px, ${oy}px)`;
         }
 
         msg.element.style.left = `${dX}%`;
@@ -146,39 +116,30 @@ function animate() {
         }
         return true;
     });
-
     requestAnimationFrame(animate);
 }
-
 requestAnimationFrame(animate);
 
-// --- メッセージ送信 (最新修正版) ---
-const inputForm = document.getElementById('input-form');
-const inputField = document.getElementById('message-input');
+// --- 送信処理 (★重要：ここで入力をクリアする) ---
+const form = document.getElementById('input-form');
+const input = document.getElementById('message-input');
 
-inputForm.addEventListener('submit', async (e) => {
+form.onsubmit = async (e) => {
     e.preventDefault();
-    
-    const text = inputField.value.trim();
-
-    // ユーザーがログインしていて、テキストが空でない場合のみ送信
+    const text = input.value.trim();
     if (!text || !user) return;
 
-    try {
-        // 先に入力欄を空にする（ユーザー体験を良くするため）
-        const messageToSend = text;
-        inputField.value = ''; 
+    // 即座に消す
+    input.value = '';
 
+    try {
         await addDoc(msgCol, {
-            text: messageToSend,
+            text: text,
             userId: user.uid,
             createdAt: serverTimestamp()
         });
-        
-        console.log("Message sent!");
     } catch (err) {
-        console.error("Submit Error:", err);
-        // エラーが起きたら入力欄に文字を戻す（親切設計）
-        inputField.value = text;
+        console.error(err);
+        input.value = text; // 失敗したら戻す
     }
-});
+};
